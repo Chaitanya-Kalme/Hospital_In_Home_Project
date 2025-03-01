@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 
 export const sendEmail = async({email,emailType,userId}:any) =>{
     try {
-        const hashedToken = await bcrypt.hash(userId.toString(),10)
+        const token = (Math.floor(100000 + Math.random()*999999)).toString()
         let patient;
         if(emailType==="VERIFY"){
             patient = await prisma.patient.update({
@@ -13,7 +13,7 @@ export const sendEmail = async({email,emailType,userId}:any) =>{
                     id: userId.toString()
                 },
                 data:{
-                    verificationCode: hashedToken,
+                    verificationCode: token,
                     verificationCodeExpiry: new Date(Date.now() + 3600000)
                 }
             })
@@ -24,7 +24,7 @@ export const sendEmail = async({email,emailType,userId}:any) =>{
                     id: userId.toString()
                 },
                 data:{
-                    verificationCode: hashedToken,
+                    verificationCode: token,
                     verificationCodeExpiry: new Date(Date.now() + 3600000)
                 }
             })

@@ -44,7 +44,7 @@ export default function SignUpForm() {
 
       const response = await axios.post('/api/patient/sign-up', formData)
       toast.success(response.data.message)
-      router.replace('/')
+      router.replace(`/patient/verify?email=${data.email}`)
     } catch (error: any) {
       console.error("Error in signup of user", error)
       toast.error("Sign up failed", {
