@@ -16,5 +16,5 @@ export const signUpSchema = z.object({
         message: "Only JPG or PNG or JPEG file are allowed"
     }),
     specialites: z.string().optional(),
-    documentForVerification: z.array(z.string())
+    documentForVerification: z.instanceof(FileList)
 })

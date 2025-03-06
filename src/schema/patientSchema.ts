@@ -12,7 +12,7 @@ export const signUpSchema = z.object({
     email: z.string().email(),
     password: z.string().min(5,"Password must be atleast of 5 characters"),
     mobileNo: z.string().length(10,"Mobile Number must be 10 digits Long"),
-    avatar: z.instanceof(File).refine((file) =>['image/jpeg','image/png','image/jpg'].includes(file.type),{
+    avatar: z.optional(z.instanceof(File).refine((file) =>['image/jpeg','image/png','image/jpg'].includes(file.type),{
         message: "Only JPG or PNG or JPEG file are allowed"
-    })
+    }))
 })

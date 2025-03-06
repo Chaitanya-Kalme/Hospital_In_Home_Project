@@ -49,6 +49,16 @@ export default function NavigationBar() {
       })
   }
 
+
+  const getUserProfile = () =>{
+    if(user.role==="Doctor"){
+      router.replace('/doctor/profile')
+    }
+    else if(user.role==="Patient"){
+      router.replace('/patient/profile')
+    }
+  }
+
   return (
     <nav className="p-2 w-full flex justify-between">
       <NavigationMenu className="max-w-screen justify-start">
@@ -105,8 +115,11 @@ export default function NavigationBar() {
           </NavigationMenuItem>
           <NavigationMenuItem >
             {session ? (
-              <div>
-                <Button onClick={() => Logout()}>Logout
+              <div className="space-x-2">
+                <Button onClick={() => getUserProfile()} className="rounded-full">
+                  Profile
+                </Button>
+                <Button onClick={() => Logout()} className="rounded-md">Logout
                   <div>
                     <LogOut />
                   </div>

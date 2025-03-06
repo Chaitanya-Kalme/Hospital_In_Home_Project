@@ -103,7 +103,7 @@ export default function SignInForm() {
             <Button type="submit" disabled={loading}>Submit</Button>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
-              <a href="/patient/sign-up" className="underline underline-offset-4">
+              <a href="/doctor/sign-up" className="underline underline-offset-4">
                 Sign Up
               </a>
             </div>

@@ -1,8 +1,14 @@
 import prisma from "@/lib/prisma";
-import { signUpSchema } from "@/schema/patientSchema";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs"
 import { sendEmail } from "@/helper/sendEmail";
+import { UploadAvatarImage } from "@/helper/uploadOnCloudinary";
+
+interface CloudinaryUploadResult {
+    public_id: string,
+    secure_url: string
+    [key: string]: any
+}
 
 
 export async function POST(req: NextRequest){
@@ -13,9 +19,8 @@ export async function POST(req: NextRequest){
         const password = userForm.get('password') as string
         const avatar = userForm.get('avatar')  as File|| null
         const mobileNo = userForm.get('mobileNo') as string
-        const avatarFileName = avatar?.name as string
 
-        if(!userName && !email && !password && !mobileNo){
+        if(!userName && !email && !password && !mobileNo && avatar){
             return NextResponse.json({
                 success: false,
                 message: "All Fields are required"
@@ -35,6 +40,23 @@ export async function POST(req: NextRequest){
             },{status:400})
         }
 
+        let imageName;
+        if(avatar!==null){
+            await UploadAvatarImage(avatar)
+            .then((response) =>{
+                imageName = response
+            })
+            .catch((error) =>{
+                return NextResponse.json({
+                    success: false,
+                    message: "Error while uploading image"
+                },{status: 400})
+            })
+        }
+        else{
+            imageName = process.env.CLOUDINARY_DEFAULT_IMAGE
+        }
+
         const hashedPassword= await bcrypt.hash(password,10)
 
         const createdPatient = await prisma.patient.create({
@@ -42,7 +64,7 @@ export async function POST(req: NextRequest){
                 userName: userName,
                 email: email,
                 password: hashedPassword,
-                avatar: avatarFileName,
+                avatar: imageName,
                 mobileNo: mobileNo,
             }
         })

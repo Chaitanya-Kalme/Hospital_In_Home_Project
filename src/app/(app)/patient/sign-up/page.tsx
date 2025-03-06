@@ -39,7 +39,9 @@ export default function SignUpForm() {
       formData.append('email',data.email)
       formData.append('password',data.password)
       formData.append('mobileNo',data.mobileNo)
-      formData.append('avatar',data.avatar)
+      if(data.avatar){
+        formData.append('avatar',data.avatar)
+      }
 
 
       const response = await axios.post('/api/patient/sign-up', formData)

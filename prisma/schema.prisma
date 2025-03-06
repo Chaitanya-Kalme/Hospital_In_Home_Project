@@ -27,6 +27,7 @@ model patient {
   resetCodeExpiry        DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @default(now())
+  // subscriptions Subscription[]
 }
 
 model Doctor {
@@ -36,11 +37,24 @@ model Doctor {
   password                String
   avatar                  String
   mobileNo                String
-  isVerified              Boolean   @default(false)
+  isVerified              Boolean   @default(false) 
   resetCode               String?
   reserCodeExpiry         DateTime?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @default(now())
   specialites             String?
   documentForVerification String[]
+  // subcriptions Subscription[]
 }
+
+
+// model Subscription{
+//   id String @id @default(uuid()) @db.Uuid
+//   doctorId 
+//   patientId  String
+//   isApprovedByDoctor Boolean  @default(false)
+//   detailsAboutProblem String
+//   appointment DateTime?
+//   doctor Doctor @relation(fields: [doctorId], references: [id])
+//   patient patient @relation(fields: [patientId], references: [id])
+// }

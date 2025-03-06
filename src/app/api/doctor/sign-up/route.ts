@@ -1,4 +1,6 @@
+import { UploadAvatarImage, UploadDoctorDocuments } from "@/helper/uploadOnCloudinary";
 import prisma from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 
 
@@ -12,7 +14,6 @@ export async function POST(request: NextRequest) {
         const mobileNo = doctorData.get('mobileNo') as string
         const specialites = doctorData.get('specialites') as string
         const documentForVerification= doctorData.getAll('documentForVerification') as any
-        const avatarFileName = avatar?.name as string
     
         if(!userName && !email && !password && !avatar && !mobileNo && !documentForVerification){
             return NextResponse.json({
@@ -29,29 +30,65 @@ export async function POST(request: NextRequest) {
     
         if(isDoctorAccountExist){
             return NextResponse.json({
-                message: false,
-                success: "User Account Already Exist"
+                success: false,
+                message: "User Account Already Exist"
             },{status:400})
         }
-    
-        const doctor= await prisma.doctor.create({
-            data:{
-                userName,
-                email,
-                password,
-                avatar: avatarFileName,
-                mobileNo,
-                documentForVerification: documentForVerification, 
-                specialites
-            }
-        })
-    
-        if(!doctor){
-            return NextResponse.json({
-                success: false,
-                message: "Error while creating the account"
-            },{status:500})
+
+        let imageURL;
+        if(avatar){
+            await UploadAvatarImage(avatar)
+            .then((response) =>{
+                imageURL = response.toString()
+            })
+            .catch((error) =>{
+                return NextResponse.json({
+                    success: false,
+                    message: "Error while uploading image."
+                },{status:500})
+            })
+
         }
+        const hashedPassword = await bcrypt.hash(password,10)
+        let documentsArray: Array<string>=[];
+
+        const uploadDocuments=  async () =>{
+            const uploadPromises = documentForVerification.map(async (document: File) =>{
+                await UploadDoctorDocuments(document)
+                .then((response) =>{
+                    documentsArray.push(response.toString())
+                })
+                .catch((error) =>{
+                    console.log(error)
+                    return NextResponse.json({
+                        success: false,
+                        message: "Error while uploading the Document."
+                    })
+                })
+            })
+            await Promise.all(uploadPromises);
+            const doctor= await prisma.doctor.create({
+                data:{
+                    userName,
+                    email,
+                    password: hashedPassword,
+                    avatar: imageURL!,
+                    mobileNo,
+                    documentForVerification: documentsArray, 
+                    specialites
+                }
+            })
+        
+            if(!doctor){
+                return NextResponse.json({
+                    success: false,
+                    message: "Error while creating the account"
+                },{status:500})
+            }
+        }
+        uploadDocuments()
+
+    
     
         return NextResponse.json({
             success: true,
@@ -59,7 +96,6 @@ export async function POST(request: NextRequest) {
         },{status:200})
     } catch (error:any) {
         console.log(error.message)
-
         return NextResponse.json({
             success: false,
             message: "Internal Server Error",

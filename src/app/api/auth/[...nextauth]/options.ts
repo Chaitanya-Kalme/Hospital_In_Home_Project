@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
                         patient = await prisma.patient.findFirst({
                             where:{
                                 email: credentials.email
-                            }
+                            },
                         })
                         if(!patient){
                             throw new Error("User Does not Exist")
@@ -32,7 +32,7 @@ export const authOptions: NextAuthOptions = {
                         }
                         const isPasswordCorrect = await bcrypt.compare(credentials.password,patient.password)
                         if(isPasswordCorrect){
-                            return patient
+                            return {...patient,role: "Patient"}
                         }
                         else{
                             return null
@@ -52,8 +52,7 @@ export const authOptions: NextAuthOptions = {
                         }
                         const isPasswordCorrect = await bcrypt.compare(credentials.password,doctor.password);
                         if(isPasswordCorrect){
-                            console.log(doctor)
-                            return doctor
+                            return {...doctor,role: "Doctor"}
                         }
                         else{
                             return null
@@ -73,6 +72,7 @@ export const authOptions: NextAuthOptions = {
                 token.userName =user.userName
                 token.email = user.email
                 token.isVerified = user.isVerified
+                token.role = user.role
             }
             return token
         },
@@ -82,6 +82,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.userName = token.userName
                 session.user.email = token.email
                 session.user.isVerified = token.isVerified
+                session.user.role = token.role
             }
             return session
         }
