@@ -14,47 +14,72 @@ datasource db {
 }
 
 model patient {
-  id                     String    @id @default(uuid()) @db.Uuid
+  id                     String         @id @default(uuid()) @db.Uuid
   userName               String
-  email                  String    @unique
+  email                  String         @unique
   password               String
   avatar                 String?
   mobileNo               String
-  isVerified             Boolean   @default(false)
+  isVerified             Boolean        @default(false)
   verificationCode       String?
   verificationCodeExpiry DateTime?
   resetCode              String?
   resetCodeExpiry        DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @default(now())
-  // subscriptions Subscription[]
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  subscriptions          Subscription[]
 }
 
 model Doctor {
-  id                      String    @id @default(uuid()) @db.Uuid
+  id                      String         @id @default(uuid()) @db.Uuid
   userName                String
-  email                   String    @unique
+  email                   String         @unique
   password                String
   avatar                  String
   mobileNo                String
-  isVerified              Boolean   @default(false) 
+  isVerified              Boolean        @default(false)
   resetCode               String?
   reserCodeExpiry         DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @default(now())
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
   specialites             String?
   documentForVerification String[]
-  // subcriptions Subscription[]
+  subscriptions           Subscription[]
 }
 
+model Subscription {
+  id                  String        @id @default(uuid()) @db.Uuid
+  isApprovedByDoctor  Boolean       @default(false)
+  detailsAboutProblem String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @default(now()) @updatedAt
+  doctor              Doctor        @relation(fields: [doctorId], references: [id])
+  doctorId            String        @db.Uuid
+  patient             patient       @relation(fields: [patientId], references: [id])
+  patientId           String        @db.Uuid
+  Appointment         Appointment[]
+}
 
-// model Subscription{
-//   id String @id @default(uuid()) @db.Uuid
-//   doctorId 
-//   patientId  String
-//   isApprovedByDoctor Boolean  @default(false)
-//   detailsAboutProblem String
-//   appointment DateTime?
-//   doctor Doctor @relation(fields: [doctorId], references: [id])
-//   patient patient @relation(fields: [patientId], references: [id])
-// }
+model Message {
+  id          String   @id @default(uuid()) @db.Uuid
+  messageData String
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+  userId      String   @db.Uuid
+}
+
+enum AppointmentMode {
+  Offline
+  Online
+}
+
+model Appointment {
+  id                     String          @id @default(uuid()) @db.Uuid
+  doctorId               String          @db.Uuid
+  patientId              String          @db.Uuid
+  appointmentDateAndTime DateTime
+  mode                   AppointmentMode
+  meetingLink            String? // Video Call Meeting Link
+  subscriptionId         String          @db.Uuid
+  subscription           Subscription    @relation(fields: [subscriptionId], references: [id])
+}

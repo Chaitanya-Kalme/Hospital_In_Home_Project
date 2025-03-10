@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { NextResponse } from "next/server"
 
-
+// Email types verify,reset, subscription approved by doctor, appointment
 export const sendEmail = async({email,emailType,userId}:any) =>{
     try {
         const token = (Math.floor(100000 + Math.random()*999999)).toString()
@@ -29,10 +29,13 @@ export const sendEmail = async({email,emailType,userId}:any) =>{
                 }
             })
         }
+        else if(emailType==="Appointment"){
+            
+        }
         else {
             return NextResponse.json({
                 success: false,
-                message: "Email type must be VERIFY or RESET"
+                message: "Email type must be defined"
             },{status:400})
         }
 

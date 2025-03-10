@@ -52,14 +52,17 @@ export default function SignUpForm() {
 
 
 
-      const response = await axios.post('/api/doctor/sign-up', formData)
-      if(response.status===200){
-        toast.success(response.data.message)
-        setIsShowing(true)
-      }
-      else{
-        toast.error(response.data.message)
-      }
+      await axios.post('/api/doctor/sign-up', formData)
+      .then((response) =>{
+        if(response.status===200){
+          toast.success(response.data.message)
+          setIsShowing(true)
+        }
+        else{
+          toast.error(response.data.message)
+        }
+
+      })
 
     } catch (error: any) {
       console.error(error)

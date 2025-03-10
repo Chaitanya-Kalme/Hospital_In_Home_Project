@@ -50,11 +50,11 @@ export default function NavigationBar() {
   }
 
 
-  const getUserProfile = () =>{
-    if(user.role==="Doctor"){
+  const getUserProfile = () => {
+    if (user.role === "Doctor") {
       router.replace('/doctor/profile')
     }
-    else if(user.role==="Patient"){
+    else if (user.role === "Patient") {
       router.replace('/patient/profile')
     }
   }
@@ -89,6 +89,20 @@ export default function NavigationBar() {
               Contact Us
             </Link>
           </NavigationMenuItem>
+          {
+            session?.user.role!=="Doctor"? (
+              <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+                <Link href="/consultancy">
+                  Consult Doctor
+                </Link>
+              </NavigationMenuItem>
+            ):
+            (<NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+                <Link href="/consultancy/patientRequest">
+                  Patient Request
+                </Link>
+              </NavigationMenuItem>)
+          }
         </NavigationMenuList>
         <NavigationMenuList>
           <NavigationMenuItem >
