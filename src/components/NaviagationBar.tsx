@@ -90,18 +90,26 @@ export default function NavigationBar() {
             </Link>
           </NavigationMenuItem>
           {
-            session?.user.role!=="Doctor"? (
+            session?.user.role !== "Doctor" ? (
               <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
                 <Link href="/consultancy">
                   Consult Doctor
                 </Link>
               </NavigationMenuItem>
-            ):
-            (<NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
-                <Link href="/consultancy/patientRequest">
-                  Patient Request
-                </Link>
-              </NavigationMenuItem>)
+            ) :
+              (<NavigationMenuList>
+                <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+                  <Link href="/consultancy/patientRequest">
+                    Patient Request
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+                  <Link href="/consultancy/patientList">
+                    Patient List
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+              )
           }
         </NavigationMenuList>
         <NavigationMenuList>

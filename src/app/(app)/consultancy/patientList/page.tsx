@@ -13,16 +13,13 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal, RotateCwSquare } from "lucide-react"
+import { ArrowUpDown, CalendarIcon, ChevronDown, ClockIcon, MoreHorizontal, RotateCwSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -39,14 +36,41 @@ import {
     Sheet,
     SheetClose,
     SheetContent,
-    SheetDescription,
     SheetFooter,
     SheetHeader,
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet"
-import { Label } from "@radix-ui/react-dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Calendar } from "@/components/ui/calendar"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+  } from "@/components/ui/select"
 
 
 export type Patient = {
@@ -65,25 +89,25 @@ export type subscriptionRequests = {
     patient: Patient
 }
 
-const acceptPatientRequest = async ({ subscriptionId }: { subscriptionId: string }) => {
-    try {
-        await axios.patch(`/api/subscription/approveSubscription/${subscriptionId}`)
-            .then((response) => {
-                console.log(response.data.message)
-                if (response.status === 200) {
-                    toast.success(response.data.message)
-                    location.reload()
-                }
-                else {
-                    toast.error(response.data.message)
-                }
-            })
-    } catch (error: any) {
-        console.log(error)
-        toast.error(error.message)
 
-    }
+
+const createAppointment = async ({ subscriptionId, date,appointmentMode }: { subscriptionId: string, date: Date,appointmentMode: string }) => {
+    const formData = new FormData()
+    formData.append('appointmentDateAndTime',date.toString())
+    formData.append('appointmentMode',appointmentMode)
+
+    await axios.post(`/api/subscription/createAppointment/${subscriptionId}`,formData)
+        .then((response) => {
+            toast.success(response.data.message)
+        })
+        .catch((error) => {
+            console.log(error.response.data.message)
+            toast.error(error.response.data.message)
+        })
 }
+
+
+
 
 export const columns: ColumnDef<subscriptionRequests>[] = [
     {
@@ -112,7 +136,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
         accessorKey: "isApprovedByDoctor",
         header: "Approval Status",
         cell: ({ row }) => {
-            const isApproved = row.getValue("isApprovedByDoctor"); // Get the boolean value
+            const isApproved = row.getValue("isApprovedByDoctor");
             return (
                 <div className="capitalize">{isApproved ? "Approved" : "Not Approved"}</div>
             );
@@ -174,14 +198,175 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
 
     },
     {
-        accessorKey: "Accept Request",
+        accessorKey: "Set Appointment",
         header: ({ column }) => {
             return <div></div>
         },
         cell: ({ row }) => {
             const subscriptionId = row.getValue('subscriptionId') as string
+            const [date, setDate] = useState<Date>();
+            const [isOpen, setIsOpen] = useState(false);
+            const [appointmentMode,setAppointmentMode] = useState("")
+
+            const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+            const handleDateSelect = (selectedDate: Date | undefined) => {
+                if (selectedDate) {
+                    setDate(selectedDate);
+                }
+            };
+
+            const handleTimeChange = (
+                type: "hour" | "minute" | "ampm",
+                value: string
+            ) => {
+                if (date) {
+                    const newDate = new Date(date);
+                    if (type === "hour") {
+                        newDate.setHours(
+                            (parseInt(value) % 12) + (newDate.getHours() >= 12 ? 12 : 0)
+                        );
+                    } else if (type === "minute") {
+                        newDate.setMinutes(parseInt(value));
+                    } else if (type === "ampm") {
+                        const currentHours = newDate.getHours();
+                        newDate.setHours(
+                            value === "PM" ? currentHours + 12 : currentHours - 12
+                        );
+                    }
+                    setDate(newDate);
+                }
+            };
+
             return (
-                <Button onClick={() => acceptPatientRequest({ subscriptionId })}>Accept Request</Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button>Set Appointment</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="overflow-y-scroll">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-center">Appointment Form</AlertDialogTitle>
+                            <AlertDialogDescription className="text-center">
+                                Create Appointment for Patient
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <div className="p-2 space-x-3">
+                            <div className="flex">Appointment Date and Time:</div>
+                                <Popover open={isOpen} onOpenChange={setIsOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !date && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {date ? (
+                                                format(date, "dd/MM/yyyy hh:mm aa")
+                                            ) : (
+                                                <span>Pick a date and time</span>
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <div className="sm:flex">
+                                            <Calendar
+                                                mode="single"
+                                                selected={date}
+                                                onSelect={handleDateSelect}
+                                                initialFocus
+                                            />
+                                            <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x ">
+                                                <ScrollArea className="w-64 sm:w-auto">
+                                                    <div className="flex sm:flex-col p-2">
+                                                        {hours.reverse().map((hour) => (
+                                                            <Button
+                                                                key={hour}
+                                                                size="icon"
+                                                                variant={
+                                                                    date && date.getHours() % 12 === hour % 12
+                                                                        ? "default"
+                                                                        : "ghost"
+                                                                }
+                                                                className="sm:w-full shrink-0 aspect-square"
+                                                                onClick={() => handleTimeChange("hour", hour.toString())}
+                                                            >
+                                                                {hour}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                    <ScrollBar orientation="horizontal" className="sm:hidden" />
+                                                </ScrollArea>
+                                                <ScrollArea className="w-64 sm:w-auto">
+                                                    <div className="flex sm:flex-col p-2">
+                                                        {Array.from({ length: 12 }, (_, i) => i * 5).map((minute) => (
+                                                            <Button
+                                                                key={minute}
+                                                                size="icon"
+                                                                variant={
+                                                                    date && date.getMinutes() === minute
+                                                                        ? "default"
+                                                                        : "ghost"
+                                                                }
+                                                                className="sm:w-full shrink-0 aspect-square"
+                                                                onClick={() =>
+                                                                    handleTimeChange("minute", minute.toString())
+                                                                }
+                                                            >
+                                                                {minute}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                    <ScrollBar orientation="horizontal" className="sm:hidden" />
+                                                </ScrollArea>
+                                                <ScrollArea className="">
+                                                    <div className="flex sm:flex-col p-2">
+                                                        {["AM", "PM"].map((ampm) => (
+                                                            <Button
+                                                                key={ampm}
+                                                                size="icon"
+                                                                variant={
+                                                                    date &&
+                                                                        ((ampm === "AM" && date.getHours() < 12) ||
+                                                                            (ampm === "PM" && date.getHours() >= 12))
+                                                                        ? "default"
+                                                                        : "ghost"
+                                                                }
+                                                                className="sm:w-full shrink-0 aspect-square"
+                                                                onClick={() => handleTimeChange("ampm", ampm)}
+                                                            >
+                                                                {ampm}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </ScrollArea>
+                                            </div>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            <div>Appoinment Mode: 
+                            <Select value={appointmentMode} onValueChange={setAppointmentMode} >
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select Appointment Mode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Appointment Mode</SelectLabel>
+                                        <SelectItem value="Offline">Offline</SelectItem>
+                                        <SelectItem value="Online">Online</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            </div>
+                        </div>
+
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => createAppointment({ subscriptionId: subscriptionId, date: date!,appointmentMode:appointmentMode })}>Create Appointment</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             )
         }
     },
@@ -197,7 +382,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                 <div className="text-center w-full justify-center flex">
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button variant="outline">View Profile</Button>
+                            <Button >View Profile</Button>
                         </SheetTrigger>
                         <SheetContent>
                             <SheetHeader>
@@ -226,11 +411,11 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                                     </div>
                                 </div>
                             </div>
-                        <SheetFooter>
-                            <SheetClose asChild>
-                                <Button onClick={() => acceptPatientRequest({ subscriptionId: row.getValue('subscriptionId') })}>Accept Request</Button>
-                            </SheetClose>
-                        </SheetFooter>
+                            <SheetFooter>
+                                <SheetClose asChild>
+                                    <Button >Remove Patient</Button>
+                                </SheetClose>
+                            </SheetFooter>
                         </SheetContent>
                     </Sheet>
                 </div>
@@ -244,15 +429,15 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
 
 export default function PatientRequestPending() {
 
-    const [pendingRequest, setPendingRequest] = useState<subscriptionRequests[]>([])
+    const [patientList, setPatientList] = useState<subscriptionRequests[]>([])
     const [isLoading, setIsLoading] = useState(false)
 
     useEffect(() => {
         const getPendingRequest = async () => {
             setIsLoading(true)
-            await axios.get('/api/subscription/getPendingRequest?isApprovedByDoctor=false')
+            await axios.get('/api/subscription/getPendingRequest?isApprovedByDoctor=true')
                 .then((response) => {
-                    setPendingRequest(response.data.subscriptionsNotApprovedByDoctor)
+                    setPatientList(response.data.subscriptionsNotApprovedByDoctor)
                 })
                 .catch((error) => {
                     console.log(error)
@@ -272,7 +457,7 @@ export default function PatientRequestPending() {
     const [rowSelection, setRowSelection] = useState({})
 
     const table = useReactTable({
-        data: pendingRequest,
+        data: patientList,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -289,23 +474,6 @@ export default function PatientRequestPending() {
             rowSelection,
         }
     })
-    const selectedRow = table.getSelectedRowModel().rows
-    const acceptSelectedPatientRequest = async () => {
-        let isErrorHappend = false
-        for (let i = 0; i < selectedRow.length; i++) {
-            try {
-                await axios.patch(`/api/subscription/approveSubscription/${selectedRow[i].original.id}`)
-            } catch (error: any) {
-                isErrorHappend = true
-                console.log(error)
-                toast.error(error.message)
-            }
-        }
-        if (!isErrorHappend) {
-            toast.success("Request Accepted Successfully")
-            location.reload()
-        }
-    }
 
     if (isLoading) {
         return (
@@ -327,11 +495,6 @@ export default function PatientRequestPending() {
                     className="max-w-sm"
                 />
                 <DropdownMenu>
-                    <Button variant="outline" className="ml-auto" onClick={() => {
-                        acceptSelectedPatientRequest()
-                    }}>
-                        Accept All Request
-                    </Button>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
                             Columns <ChevronDown />

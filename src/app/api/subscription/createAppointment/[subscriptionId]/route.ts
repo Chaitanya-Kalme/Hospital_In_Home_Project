@@ -32,7 +32,8 @@ export async function POST(request: NextRequest,{params}:{params: {subscriptionI
             },{status:404})
         }
     
-        const subscriptionId = params.subscriptionId
+        const urlparams = await params
+        const subscriptionId = urlparams.subscriptionId
     
         if(!subscriptionId){
             return NextResponse.json({
@@ -56,18 +57,17 @@ export async function POST(request: NextRequest,{params}:{params: {subscriptionI
         }
     
         const appointmentDataForm = await request.formData()
-        const appointmentDate = appointmentDataForm.get('appointmentDate') as string
-        const appointmentTime = appointmentDataForm.get('appointmentTime') as string
-        const appointmentMode = appointmentDataForm.get('mode') as string
-        const meetingLink = appointmentDataForm.get('meetingLink') as string || null
-    
-        const [day,month,year] = appointmentDate.split('/')
-    
-        const formatedDate = `${year}-${month}-${day}`
-        const DateAndTime = `${formatedDate}T${appointmentTime}`
-    
-        const appointmentDateAndTime = new Date(DateAndTime)
-    
+        const dateAndTime = appointmentDataForm.get('appointmentDateAndTime') as string
+        const appointmentMode = appointmentDataForm.get('appointmentMode') as string
+        let meetingLink
+        if(appointmentMode==="Online"){
+            meetingLink = "meeting link"
+        }
+
+
+        const formatedDateAndTime = new Date(dateAndTime)
+        const appointmentDateAndTime = formatedDateAndTime.toISOString()
+
         if(!appointmentDateAndTime && !appointmentMode){
             return NextResponse.json({
                 success: false,
@@ -95,6 +95,20 @@ export async function POST(request: NextRequest,{params}:{params: {subscriptionI
                 message: "Patient Does not exist"
             },{status:404})
         }
+
+        const checkAppointmentExist = await prisma.appointment.findFirst({
+            where:{
+                subscriptionId: subscriptionId,
+                appointmentDateAndTime: appointmentDateAndTime
+            }
+        })
+
+        if(checkAppointmentExist){
+            return NextResponse.json({
+                success: false,
+                message: "Appointment Already Exist with this user at that time"
+            },{status:400})
+        }
     
         const appointment = await prisma.appointment.create({
             data:{
@@ -103,6 +117,23 @@ export async function POST(request: NextRequest,{params}:{params: {subscriptionI
                 appointmentDateAndTime: appointmentDateAndTime,
                 mode: appointmentMode==="Online"? "Online" : "Offline",
                 subscriptionId: subscriptionId,
+                meetingLink: meetingLink
+            },
+            include:{
+                subscription:{
+                    include:{
+                        doctor:{
+                            omit:{
+                                password: true
+                            }
+                        },
+                        patient:{
+                            omit:{
+                                password: true
+                            }
+                        }
+                    }
+                }
             }
         })
     
@@ -117,9 +148,11 @@ export async function POST(request: NextRequest,{params}:{params: {subscriptionI
     
         return NextResponse.json({
             success: true,
-            message: "Appointment Created Successfully"
+            message: "Appointment Created Successfully",
+            appointment: appointment
         },{status:200})
-    } catch (error) {
+    } catch (error:any) {
+        console.log(error.message)
         return NextResponse.json({
             success: false,
             message: "Server error while creating the appointment"
