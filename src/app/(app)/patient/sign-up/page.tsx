@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/input"
 import axios from "axios"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 export default function SignUpForm() {
   const [loading, setLoading] = useState(false)
@@ -35,12 +42,12 @@ export default function SignUpForm() {
     setLoading(true)
     try {
       const formData = new FormData()
-      formData.append('userName',data.userName)
-      formData.append('email',data.email)
-      formData.append('password',data.password)
-      formData.append('mobileNo',data.mobileNo)
-      if(data.avatar){
-        formData.append('avatar',data.avatar)
+      formData.append('userName', data.userName)
+      formData.append('email', data.email)
+      formData.append('password', data.password)
+      formData.append('mobileNo', data.mobileNo)
+      if (data.avatar) {
+        formData.append('avatar', data.avatar)
       }
 
 
@@ -68,6 +75,7 @@ export default function SignUpForm() {
   }
 
   return (
+
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
         <Form {...form}>
@@ -128,13 +136,13 @@ export default function SignUpForm() {
               name="avatar"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Avatar File</FormLabel>
+                  <FormLabel>Avatar File (Not Necessary)</FormLabel>
                   <FormControl>
-                    <Input type="file" onChange={(e) =>{
-                      if(e.target.files){
+                    <Input type="file" onChange={(e) => {
+                      if (e.target.files) {
                         field.onChange(e.target.files[0])
                       }
-                    }}/>
+                    }} />
                   </FormControl>
                 </FormItem>
               )}

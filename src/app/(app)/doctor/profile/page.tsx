@@ -112,7 +112,7 @@ function ProfilePage() {
             <div className="flex gap-x-5 p-3 text-center justify-center">
                 <div className="size-56">
                     <Avatar className="size-56 rounded-3xl">
-                        <AvatarImage src={`${fetchedUser.avatar}`} />
+                        <AvatarImage src={`${fetchedUser.avatar}`} className="rounded-3xl" />
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button variant="outline">Update Avatar</Button>

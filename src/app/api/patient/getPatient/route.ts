@@ -14,6 +14,23 @@ export async function GET(request: NextRequest){
             },
             omit:{
                 password:true
+            },
+            include:{
+                subscriptions: {
+                    include:{
+                        doctor: {
+                            omit:{
+                                password: true
+                            }
+                        },
+                        patient: {
+                            omit:{
+                                password: true
+                            }
+                        },
+                        messages:true
+                    }
+                }
             }
         })
     

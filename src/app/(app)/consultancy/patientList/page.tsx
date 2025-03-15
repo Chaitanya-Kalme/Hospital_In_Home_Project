@@ -70,7 +70,16 @@ import {
     SelectLabel,
     SelectTrigger,
     SelectValue,
-  } from "@/components/ui/select"
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { getSession } from "next-auth/react"
+
+interface Message{
+    id: string,
+    userId: string,
+    messageText: string,
+    messageDocument: string,
+}
 
 
 export type Patient = {
@@ -87,16 +96,17 @@ export type subscriptionRequests = {
     detailsAboutProblem: string,
     createdAt: Date,
     patient: Patient
+    messages: Message[]
 }
 
 
 
-const createAppointment = async ({ subscriptionId, date,appointmentMode }: { subscriptionId: string, date: Date,appointmentMode: string }) => {
+const createAppointment = async ({ subscriptionId, date, appointmentMode }: { subscriptionId: string, date: Date, appointmentMode: string }) => {
     const formData = new FormData()
-    formData.append('appointmentDateAndTime',date.toString())
-    formData.append('appointmentMode',appointmentMode)
+    formData.append('appointmentDateAndTime', date.toString())
+    formData.append('appointmentMode', appointmentMode)
 
-    await axios.post(`/api/subscription/createAppointment/${subscriptionId}`,formData)
+    await axios.post(`/api/subscription/createAppointment/${subscriptionId}`, formData)
         .then((response) => {
             toast.success(response.data.message)
         })
@@ -206,7 +216,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
             const subscriptionId = row.getValue('subscriptionId') as string
             const [date, setDate] = useState<Date>();
             const [isOpen, setIsOpen] = useState(false);
-            const [appointmentMode,setAppointmentMode] = useState("")
+            const [appointmentMode, setAppointmentMode] = useState("")
 
             const hours = Array.from({ length: 12 }, (_, i) => i + 1);
             const handleDateSelect = (selectedDate: Date | undefined) => {
@@ -252,118 +262,118 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
 
                         <div className="p-2 space-x-3">
                             <div className="flex">Appointment Date and Time:</div>
-                                <Popover open={isOpen} onOpenChange={setIsOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal",
-                                                !date && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date ? (
-                                                format(date, "dd/MM/yyyy hh:mm aa")
-                                            ) : (
-                                                <span>Pick a date and time</span>
-                                            )}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <div className="sm:flex">
-                                            <Calendar
-                                                mode="single"
-                                                selected={date}
-                                                onSelect={handleDateSelect}
-                                                initialFocus
-                                            />
-                                            <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x ">
-                                                <ScrollArea className="w-64 sm:w-auto">
-                                                    <div className="flex sm:flex-col p-2">
-                                                        {hours.reverse().map((hour) => (
-                                                            <Button
-                                                                key={hour}
-                                                                size="icon"
-                                                                variant={
-                                                                    date && date.getHours() % 12 === hour % 12
-                                                                        ? "default"
-                                                                        : "ghost"
-                                                                }
-                                                                className="sm:w-full shrink-0 aspect-square"
-                                                                onClick={() => handleTimeChange("hour", hour.toString())}
-                                                            >
-                                                                {hour}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                    <ScrollBar orientation="horizontal" className="sm:hidden" />
-                                                </ScrollArea>
-                                                <ScrollArea className="w-64 sm:w-auto">
-                                                    <div className="flex sm:flex-col p-2">
-                                                        {Array.from({ length: 12 }, (_, i) => i * 5).map((minute) => (
-                                                            <Button
-                                                                key={minute}
-                                                                size="icon"
-                                                                variant={
-                                                                    date && date.getMinutes() === minute
-                                                                        ? "default"
-                                                                        : "ghost"
-                                                                }
-                                                                className="sm:w-full shrink-0 aspect-square"
-                                                                onClick={() =>
-                                                                    handleTimeChange("minute", minute.toString())
-                                                                }
-                                                            >
-                                                                {minute}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                    <ScrollBar orientation="horizontal" className="sm:hidden" />
-                                                </ScrollArea>
-                                                <ScrollArea className="">
-                                                    <div className="flex sm:flex-col p-2">
-                                                        {["AM", "PM"].map((ampm) => (
-                                                            <Button
-                                                                key={ampm}
-                                                                size="icon"
-                                                                variant={
-                                                                    date &&
-                                                                        ((ampm === "AM" && date.getHours() < 12) ||
-                                                                            (ampm === "PM" && date.getHours() >= 12))
-                                                                        ? "default"
-                                                                        : "ghost"
-                                                                }
-                                                                className="sm:w-full shrink-0 aspect-square"
-                                                                onClick={() => handleTimeChange("ampm", ampm)}
-                                                            >
-                                                                {ampm}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                </ScrollArea>
-                                            </div>
+                            <Popover open={isOpen} onOpenChange={setIsOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date ? (
+                                            format(date, "dd/MM/yyyy hh:mm aa")
+                                        ) : (
+                                            <span>Pick a date and time</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <div className="sm:flex">
+                                        <Calendar
+                                            mode="single"
+                                            selected={date}
+                                            onSelect={handleDateSelect}
+                                            initialFocus
+                                        />
+                                        <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x ">
+                                            <ScrollArea className="w-64 sm:w-auto">
+                                                <div className="flex sm:flex-col p-2">
+                                                    {hours.reverse().map((hour) => (
+                                                        <Button
+                                                            key={hour}
+                                                            size="icon"
+                                                            variant={
+                                                                date && date.getHours() % 12 === hour % 12
+                                                                    ? "default"
+                                                                    : "ghost"
+                                                            }
+                                                            className="sm:w-full shrink-0 aspect-square"
+                                                            onClick={() => handleTimeChange("hour", hour.toString())}
+                                                        >
+                                                            {hour}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                                <ScrollBar orientation="horizontal" className="sm:hidden" />
+                                            </ScrollArea>
+                                            <ScrollArea className="w-64 sm:w-auto">
+                                                <div className="flex sm:flex-col p-2">
+                                                    {Array.from({ length: 12 }, (_, i) => i * 5).map((minute) => (
+                                                        <Button
+                                                            key={minute}
+                                                            size="icon"
+                                                            variant={
+                                                                date && date.getMinutes() === minute
+                                                                    ? "default"
+                                                                    : "ghost"
+                                                            }
+                                                            className="sm:w-full shrink-0 aspect-square"
+                                                            onClick={() =>
+                                                                handleTimeChange("minute", minute.toString())
+                                                            }
+                                                        >
+                                                            {minute}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                                <ScrollBar orientation="horizontal" className="sm:hidden" />
+                                            </ScrollArea>
+                                            <ScrollArea className="">
+                                                <div className="flex sm:flex-col p-2">
+                                                    {["AM", "PM"].map((ampm) => (
+                                                        <Button
+                                                            key={ampm}
+                                                            size="icon"
+                                                            variant={
+                                                                date &&
+                                                                    ((ampm === "AM" && date.getHours() < 12) ||
+                                                                        (ampm === "PM" && date.getHours() >= 12))
+                                                                    ? "default"
+                                                                    : "ghost"
+                                                            }
+                                                            className="sm:w-full shrink-0 aspect-square"
+                                                            onClick={() => handleTimeChange("ampm", ampm)}
+                                                        >
+                                                            {ampm}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
                                         </div>
-                                    </PopoverContent>
-                                </Popover>
-                            <div>Appoinment Mode: 
-                            <Select value={appointmentMode} onValueChange={setAppointmentMode} >
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Select Appointment Mode" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>Appointment Mode</SelectLabel>
-                                        <SelectItem value="Offline">Offline</SelectItem>
-                                        <SelectItem value="Online">Online</SelectItem>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            <div>Appoinment Mode:
+                                <Select value={appointmentMode} onValueChange={setAppointmentMode} >
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Select Appointment Mode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectLabel>Appointment Mode</SelectLabel>
+                                            <SelectItem value="Offline">Offline</SelectItem>
+                                            <SelectItem value="Online">Online</SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => createAppointment({ subscriptionId: subscriptionId, date: date!,appointmentMode:appointmentMode })}>Create Appointment</AlertDialogAction>
+                            <AlertDialogAction onClick={() => createAppointment({ subscriptionId: subscriptionId, date: date!, appointmentMode: appointmentMode })}>Create Appointment</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -419,6 +429,88 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                         </SheetContent>
                     </Sheet>
                 </div>
+
+            )
+
+        }
+    },
+    {
+        accessorFn: (row) => row.messages,
+        accessorKey: "Chat Section",
+        header: ({ column }) => {
+            return <div></div>
+        },
+        cell: ({ row }) => {
+            const patientName = row.getValue("userName") as string
+            const patientEmail = row.getValue("email") as string
+            const patient = row.getValue("View Profile") as Patient
+            const [messageText, setMessageText] = useState("")
+            const [messageArray, setMessageArray] = useState<Message[]>([])
+            useEffect(() => {
+                const messages: Message[] = row.getValue('Chat Section')
+                setMessageArray(messages)
+            },[messageArray])
+            setInterval(async () => {
+                const messages: Message[] = row.getValue('Chat Section')
+                setMessageArray(messages)
+            }, 1000);
+            const subscriptionId = row.getValue('subscriptionId') as string
+
+
+            const sendMessage = async () => {
+                const session = await getSession()
+                const userId = session?.user.id as string
+                const role = session?.user.role as string
+
+                const messageFormData = new FormData()
+                messageFormData.append('messageText', messageText)
+                messageFormData.append('userId', userId)
+                messageFormData.append('role', role)
+                // messageFormData.append('messageDocument',)
+                await axios.post(`/api/message/createMessage/${subscriptionId}`, messageFormData)
+                    .then((response) => {
+                        toast.success("Message send sucessfully")
+                    })
+                    .catch((error) => {
+                        console.log(error)
+                        toast.error(error.message)
+                    })
+                setMessageText("")
+            }
+
+            return (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline">Chat Section</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="min-h-svh overflow-scroll">
+                        <AlertDialogCancel className="w-fit ">Cancel</AlertDialogCancel>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle >
+                                <p>Patient Name: {patientName}</p>
+                                <p>Patient Email: {patientEmail}</p>
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="border-2 w-full">
+                                {
+                                    messageArray?.length > 0 && messageArray.map((message) => (
+                                        <div className="w-full">
+                                            <div className={message.userId===patient.id? "text-left":"text-right"}>{message.messageText}</div>
+
+                                        </div>
+                                    ))
+                                }
+                               
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <AlertDialogFooter>
+                            <div className="grid w-full gap-2">
+                                <Textarea value={messageText} placeholder="Type your message here." onChange={(e) => setMessageText(e.target.value)} />
+                                <Button onClick={() => sendMessage()}>Send message</Button>
+                            </div>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
             )
 

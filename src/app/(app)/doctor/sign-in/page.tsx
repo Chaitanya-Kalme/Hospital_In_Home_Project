@@ -16,6 +16,13 @@ import { signIn } from "next-auth/react"
 import { signInSchema } from "@/schema/doctorSchema"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 export default function SignInForm() {
   const [loading, setLoading] = useState(false)
@@ -70,44 +77,68 @@ export default function SignInForm() {
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm flex flex-col gap-6">
         <Form {...form}>
-          <h1 className="font-bold text-center text-2xl">
-            Sign In Form
-          </h1>
-          <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your Email" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Enter your Password" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={loading}>Submit</Button>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <a href="/doctor/sign-up" className="underline underline-offset-4">
-                Sign Up
-              </a>
-            </div>
-          </form>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl text-center">Login</CardTitle>
+              <CardDescription className="text-center">
+                Enter your email below to login to your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
+                <div className="flex flex-col gap-6">
+                  <div className="grid gap-2">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your Email" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="flex items-center">
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem className="w-full">
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter your Password" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <a
+                      href="#"
+                      className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    >
+                      Forgot your password?
+                    </a>
+                  </div>
+                  <Button type="submit" disabled={loading}>Submit</Button>
+                  <Button variant="outline" className="w-full">
+                    Login with Google
+                  </Button>
+                </div>
+                <div className="mt-4 text-center text-sm">
+                  Don&apos;t have an account?{" "}
+                  <a href="/patient/sign-up" className="underline underline-offset-4">
+                    Sign Up
+                  </a>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </Form>
       </div>
     </div>

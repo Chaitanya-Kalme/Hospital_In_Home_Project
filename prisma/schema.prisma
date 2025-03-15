@@ -58,14 +58,18 @@ model Subscription {
   patient             patient       @relation(fields: [patientId], references: [id])
   patientId           String        @db.Uuid
   Appointment         Appointment[]
+  messages            Message[]
 }
 
 model Message {
-  id          String   @id @default(uuid()) @db.Uuid
-  messageData String
-  createdAt   DateTime @default(now())
-  updateAt    DateTime @updatedAt
-  userId      String   @db.Uuid
+  id              String       @id @default(uuid()) @db.Uuid
+  messageText     String?
+  messageDocument String?
+  createdAt       DateTime     @default(now())
+  updateAt        DateTime     @updatedAt
+  userId          String       @db.Uuid
+  subscriptionId  String       @db.Uuid
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
 }
 
 enum AppointmentMode {

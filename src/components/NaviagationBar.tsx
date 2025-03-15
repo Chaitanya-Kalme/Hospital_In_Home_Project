@@ -74,36 +74,36 @@ export default function NavigationBar() {
 
       <NavigationMenu className="max-w-screen justify-end space-x-3">
         <NavigationMenuList className="space-x-3">
-          <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`}>
+          <NavigationMenuItem >
             <Link href="/">
               Home
             </Link>
           </NavigationMenuItem>
-          <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`}>
+          <NavigationMenuItem >
             <Link href="/">
               About
             </Link>
           </NavigationMenuItem>
-          <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+          <NavigationMenuItem  >
             <Link href="/">
               Contact Us
             </Link>
           </NavigationMenuItem>
           {
             session?.user.role !== "Doctor" ? (
-              <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+              <NavigationMenuItem  >
                 <Link href="/consultancy">
                   Consult Doctor
                 </Link>
               </NavigationMenuItem>
             ) :
-              (<NavigationMenuList>
-                <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+              (<NavigationMenuList className="space-x-3">
+                <NavigationMenuItem  >
                   <Link href="/consultancy/patientRequest">
                     Patient Request
                   </Link>
                 </NavigationMenuItem>
-                <NavigationMenuItem className={`${theme === "dark" ? "hover:bg-lime-300" : "hover:bg-blue-200"} p-2 rounded-full text-center`} >
+                <NavigationMenuItem  >
                   <Link href="/consultancy/patientList">
                     Patient List
                   </Link>

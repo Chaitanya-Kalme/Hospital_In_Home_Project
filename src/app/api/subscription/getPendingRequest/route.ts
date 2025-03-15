@@ -32,7 +32,8 @@ export async function GET(request: NextRequest){
                     omit:{
                         password: true
                     }
-                }
+                },
+                messages:true
             },
         })
         

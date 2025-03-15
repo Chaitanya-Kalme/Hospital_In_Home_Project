@@ -43,7 +43,7 @@ export async function POST(request: NextRequest){
         let imageURL = process.env.CLOUDINARY_DEFAULT_IMAGE
         if(patient.avatar &&  patient.avatar !==imageURL){
             const publicId = getPublicIdFromUrl(patient.avatar)
-            v2.uploader.destroy(publicId as string)
+            await v2.uploader.destroy(publicId as string)
         }
 
         if(avatar){
@@ -113,7 +113,7 @@ export async function DELETE(request :NextRequest){
         let imageURL = process.env.CLOUDINARY_DEFAULT_IMAGE
         if(patient.avatar &&  patient.avatar !==imageURL){
             const publicId = getPublicIdFromUrl(patient.avatar)
-            v2.uploader.destroy(publicId as string)
+            await v2.uploader.destroy(publicId as string)
         }
 
         

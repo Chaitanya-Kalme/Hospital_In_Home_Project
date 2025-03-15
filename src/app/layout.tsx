@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NavigationBar from "@/components/NaviagationBar";
 import AuthProvider from "@/context/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default function RootLayout({
               duration={5000}
               richColors
               expand={true}
+              closeButton={true}
             />
             {children}
           </ThemeProvider>
