@@ -58,7 +58,7 @@ export default function ConsultDoctors() {
         <div className='text-center flex flex-wrap justify-center'>
             {
                 doctorList.map((doctor) =>(
-                    <Card>
+                    <Card className='m-2'>
                         <CardHeader>
                             <CardTitle>Name: {doctor.userName}</CardTitle>
                             <CardDescription>Email: {doctor.email}</CardDescription>

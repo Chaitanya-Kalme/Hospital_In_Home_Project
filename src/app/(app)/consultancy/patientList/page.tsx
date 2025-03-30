@@ -1,6 +1,6 @@
 'use client'
 import axios from "axios"
-import { useEffect, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -13,7 +13,7 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, CalendarIcon, ChevronDown, ClockIcon, MoreHorizontal, RotateCwSquare } from "lucide-react"
+import { ArrowUpDown, CalendarIcon, ChevronDown, ClockIcon, MoreHorizontal, Paperclip, RotateCwSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -73,8 +73,10 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { getSession } from "next-auth/react"
+import { UploadDoctorDocuments } from "@/helper/uploadOnCloudinary"
 
-interface Message{
+
+interface Message {
     id: string,
     userId: string,
     messageText: string,
@@ -95,7 +97,8 @@ export type subscriptionRequests = {
     isApprovedByDoctor: boolean,
     detailsAboutProblem: string,
     createdAt: Date,
-    patient: Patient
+    patient: Patient,
+    doctor: Patient
     messages: Message[]
 }
 
@@ -204,6 +207,12 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
     {
         accessorFn: (row) => row.id,
         accessorKey: "subscriptionId",
+        enableHiding: true,
+
+    },
+    {
+        accessorFn: (row) => row.doctor,
+        accessorKey: "doctor",
         enableHiding: true,
 
     },
@@ -446,15 +455,22 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
             const patient = row.getValue("View Profile") as Patient
             const [messageText, setMessageText] = useState("")
             const [messageArray, setMessageArray] = useState<Message[]>([])
+            const [messageDocument,setMessageDocument] = useState<File |null>(null) 
+            const doctor = row.getValue("doctor") as Patient
             useEffect(() => {
                 const messages: Message[] = row.getValue('Chat Section')
                 setMessageArray(messages)
-            },[messageArray])
+            }, [messageArray])
             setInterval(async () => {
                 const messages: Message[] = row.getValue('Chat Section')
                 setMessageArray(messages)
             }, 1000);
             const subscriptionId = row.getValue('subscriptionId') as string
+
+            const scroll_area: HTMLElement |null = document.getElementById("scroll_area")
+            if(scroll_area){
+                scroll_area!.scrollTop = scroll_area?.scrollHeight
+            }
 
 
             const sendMessage = async () => {
@@ -466,7 +482,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                 messageFormData.append('messageText', messageText)
                 messageFormData.append('userId', userId)
                 messageFormData.append('role', role)
-                // messageFormData.append('messageDocument',)
+                messageFormData.append('messageDocument',messageDocument as File)
                 await axios.post(`/api/message/createMessage/${subscriptionId}`, messageFormData)
                     .then((response) => {
                         toast.success("Message send sucessfully")
@@ -483,7 +499,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                     <AlertDialogTrigger asChild>
                         <Button variant="outline">Chat Section</Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="min-h-svh overflow-scroll">
+                    <AlertDialogContent className="min-h-svh">
                         <AlertDialogCancel className="w-fit ">Cancel</AlertDialogCancel>
                         <AlertDialogHeader>
                             <AlertDialogTitle >
@@ -491,20 +507,37 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                                 <p>Patient Email: {patientEmail}</p>
                             </AlertDialogTitle>
                             <AlertDialogDescription className="border-2 w-full">
-                                {
-                                    messageArray?.length > 0 && messageArray.map((message) => (
-                                        <div className="w-full">
-                                            <div className={message.userId===patient.id? "text-left":"text-right"}>{message.messageText}</div>
+                                <ScrollArea id="scroll_area" className="rounded-md border h-72 md:h-80">
+                                    {
+                                        messageArray?.length > 0 && messageArray.map((message) => (
+                                            <div key={message.id} className={`w-full ${message.userId === patient.id ? "text-right" : "text-right"}`}>
+                                                <div className={`bg-white border-2 ${message.userId === patient.id ? "justify-items-start" : "justify-items-end"} text-black`}>
+                                                    <div className="font-semibold">{message.userId === patient.id ? patientName : doctor?.userName}</div>
+                                                    <div>{message.messageText}</div>
+                                                    {message.messageDocument && (
+                                                        <a href={message.messageDocument}>Open the file</a>
+                                                    )}
+                                                </div>
 
-                                        </div>
-                                    ))
-                                }
-                               
+                                            </div>
+                                        ))
+                                    }
+                                </ScrollArea>
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-
                         <AlertDialogFooter>
                             <div className="grid w-full gap-2">
+                                <div className="flex">
+                                    <Paperclip/>
+                                    <Input type="file" onChange={(e) => {
+                                        const files: FileList |null = e.target.files
+                                        if(files){
+                                            setMessageDocument(files[0])
+                                        }
+
+                                    }}/>
+                                </div>
+
                                 <Textarea value={messageText} placeholder="Type your message here." onChange={(e) => setMessageText(e.target.value)} />
                                 <Button onClick={() => sendMessage()}>Send message</Button>
                             </div>
@@ -545,6 +578,7 @@ export default function PatientRequestPending() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
         subscriptionId: false,
+        doctor: false
     })
     const [rowSelection, setRowSelection] = useState({})
 
@@ -595,7 +629,7 @@ export default function PatientRequestPending() {
                     <DropdownMenuContent align="end">
                         {table
                             .getAllColumns()
-                            .filter((column) => column.getCanHide() && column.id !== "subscriptionId")
+                            .filter((column) => column.getCanHide() && column.id !== "subscriptionId" && column.id !== "doctor")
                             .map((column) => {
                                 return (
                                     <DropdownMenuCheckboxItem

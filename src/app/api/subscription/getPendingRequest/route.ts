@@ -33,6 +33,11 @@ export async function GET(request: NextRequest){
                         password: true
                     }
                 },
+                doctor:{
+                    omit:{
+                        password: true
+                    }
+                },
                 messages:true
             },
         })

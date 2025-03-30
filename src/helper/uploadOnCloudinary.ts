@@ -98,7 +98,9 @@ export async function UploadMessageDocument(document: File){
         const result = await new Promise<CloudinaryUploadResult>(
             (resolve,reject) =>{
                 const uploadStream = cloudinary.uploader.upload_stream(
-                    { folder: "message-documents" },
+                    { folder: "message-documents",
+                        resource_type: "auto"
+                     },
                     (error, result) => {
                         if (error) reject(error);
                         else resolve(result as CloudinaryUploadResult)

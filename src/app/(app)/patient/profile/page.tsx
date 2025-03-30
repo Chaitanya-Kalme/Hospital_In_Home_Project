@@ -3,9 +3,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar"
 import axios from "axios"
 import { getSession, useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { toast } from "sonner"
-import { ArrowUpDown, ChevronDown, } from "lucide-react"
+import { ArrowUpDown, ChevronDown, Paperclip, } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -67,6 +67,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface Message{
     id: string,
@@ -82,6 +83,7 @@ export type subscriptionRequests = {
     detailsAboutProblem: string,
     createdAt: Date,
     doctor: User,
+    patient: User
     messages: Message[]
 }
 
@@ -164,6 +166,11 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
 
     },
     {
+        accessorFn: (row) => row.patient,
+        accessorKey: "patient",
+        enableHiding: true,
+    },
+    {
         accessorFn: (row) => row.doctor,
         accessorKey: "View Profile",
         header: ({ column }) => {
@@ -224,6 +231,8 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
             const doctor = row.getValue("View Profile") as User
             const [messageText,setMessageText] = useState("")
             const [messageArray,setMessageArray] = useState<Message[]>([])
+            const [messageDocument,setMessageDocument] = useState<File |null>(null)
+            const patient = row.getValue("patient") as User
             useEffect(() =>{
                 const messages:Message[] = row.getValue('Chat Section')
                 setMessageArray(messages)
@@ -245,11 +254,10 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                 messageFormData.append('messageText',messageText)
                 messageFormData.append('userId',userId)
                 messageFormData.append('role',role)
-                // messageFormData.append('messageDocument',)
+                messageFormData.append('messageDocument',messageDocument as File)
                 
                 await axios.post(`/api/message/createMessage/${subscriptionId}`,messageFormData)
                 .then((response) =>{
-
                     toast.success("Message send sucessfully")
                 })
                 .catch((error) =>{
@@ -272,16 +280,37 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                                     <p>Doctor Email: {doctorEmail}</p>
                                 </AlertDialogTitle>
                                 <AlertDialogDescription className="border-2 w-full overflow-y-auto">
+                                <ScrollArea id="scroll_area" className="rounded-md border h-72 md:h-80">
                                     {
                                         messageArray?.length>0 &&  messageArray.map((message) =>(
-                                            <div className={`${message.userId===doctor.id? "text-left":"text-right"} border-2`}>{message.messageText}</div>
+                                            <div key={message.id} className={`w-full ${message.userId === doctor.id ? "text-right" : "text-right"}`}>
+                                            <div className={`bg-white border-2 ${message.userId === doctor.id ? "justify-items-start" : "justify-items-end"} text-black`}>
+                                                <div className="font-semibold">{message.userId === doctor.id ? doctorName : patient?.userName}</div>
+                                                <div>{message.messageText}</div>
+                                                {message.messageDocument && (
+                                                    <a href={message.messageDocument}>Open the file</a>
+                                                )}
+                                            </div>
+
+                                        </div>
                                         ))
                                     }
+                                    </ScrollArea>
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             
                             <AlertDialogFooter>
                                 <div className="grid w-full gap-2">
+                                <div className="flex">
+                                    <Paperclip/>
+                                    <Input type="file" onChange={(e) => {
+                                        const files: FileList |null = e.target.files
+                                        if(files){
+                                            setMessageDocument(files[0])
+                                        }
+
+                                    }}/>
+                                </div>
                                     <Textarea value={messageText} placeholder="Type your message here." onChange={(e) => setMessageText(e.target.value)} />
                                     <Button onClick={() => sendMessage()}>Send message</Button>
                                 </div>
@@ -307,6 +336,7 @@ function ProfilePage() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
         subscriptionId: false,
+        patient: false
     })
     const [rowSelection, setRowSelection] = useState({})
     const router = useRouter()
@@ -476,7 +506,7 @@ function ProfilePage() {
                             <DropdownMenuContent align="end">
                                 {table
                                     .getAllColumns()
-                                    .filter((column) => column.getCanHide() && column.id !== "subscriptionId")
+                                    .filter((column) => column.getCanHide() && column.id !== "subscriptionId" && column.id!=="patient")
                                     .map((column) => {
                                         return (
                                             <DropdownMenuCheckboxItem

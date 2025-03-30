@@ -70,7 +70,7 @@ export  async function POST(request: NextRequest,{params}:{params: {subscription
 
     let messageFile;
     
-    if(messageFile){
+    if(messageDocument){
         await UploadMessageDocument(messageDocument)
         .then((response) =>{
             messageFile = response.toString()
