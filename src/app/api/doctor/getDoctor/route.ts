@@ -10,7 +10,6 @@ export async function GET(request: NextRequest){
         const id = searchParams.get('doctorId')
         const type = searchParams.get('type')
     
-        console.log(searchParams)
 
         if(!type && !id){
             return NextResponse.json({
@@ -21,7 +20,43 @@ export async function GET(request: NextRequest){
     
     
         if(type==="All"){
-            const doctors = await prisma.doctor.findMany()
+            const doctors = await prisma.doctor.findMany({
+                where:{
+                    isVerified: true,
+                },
+                include:{
+                    subscriptions: {
+                        include:{
+                            patient:true
+                        }
+                    }
+                },
+                omit:{
+                    password: true
+                    
+                }
+            })
+    
+            return NextResponse.json({
+                success: true,
+                message: "Doctor fetched successfully",
+                doctors: doctors
+            },{status:200})
+        }
+        else if(type==="notVerified"){
+            const doctors = await prisma.doctor.findMany({
+                where:{
+                    isVerified: false
+                },
+                include:{
+                    subscriptions: {
+                        include:{
+                            doctor: true,
+                            patient: true
+                        }
+                    }
+                }
+            })
     
             return NextResponse.json({
                 success: true,
@@ -33,7 +68,8 @@ export async function GET(request: NextRequest){
         else if(id){
             const doctor = await prisma.doctor.findFirst({
                 where:{
-                    id: id
+                    id: id,
+                    isVerified: true,
                 },
                 omit:{
                     password:true

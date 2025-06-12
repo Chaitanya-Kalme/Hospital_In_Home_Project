@@ -58,6 +58,25 @@ export const authOptions: NextAuthOptions = {
                             return null
                         }
                     }
+                    else if(credentials?.role==="Admin"){
+                        const email = credentials.email
+                        const password = credentials.password
+                        if(email!==process.env.ADMIN_EMAIL){
+                            throw new Error("Invalid Email Address")
+                        }
+                        else if(password!==process.env.ADMIN_PASSWORD){
+                            throw new Error("Invalid Password")
+                        }
+                        else{
+                            const user ={
+                                userName: "ADMIN",
+                                email: email,
+                                password: password,
+                                role: credentials.role
+                            }
+                            return user
+                        }
+                    }
 
                 } catch (error:any) {
                    throw new Error(error)

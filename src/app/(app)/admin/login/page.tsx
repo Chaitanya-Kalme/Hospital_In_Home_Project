@@ -43,7 +43,7 @@ function SignInForm() {
       redirect: false,
       email: data.email,
       password: data.password,
-      role: "Patient"
+      role: "Admin"
     })
     if (result?.error) {
       if (result.error === 'CredentialsSignin') {
@@ -59,7 +59,7 @@ function SignInForm() {
     }
     else {
       toast.success("User Login Successfully")
-      router.replace('/')
+      router.replace('/admin')
     }
     setLoading(false)
   }
@@ -116,23 +116,8 @@ function SignInForm() {
                         )}
                       />
                     </div>
-                      <a
-                        href="#"
-                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                      >
-                        Forgot your password?
-                      </a>
                   </div>
                   <Button type="submit" disabled={loading}>Submit</Button>
-                  <Button variant="outline" className="w-full">
-                    Login with Google
-                  </Button>
-                </div>
-                <div className="mt-4 text-center text-sm">
-                  Don&apos;t have an account?{" "}
-                  <a href="/patient/sign-up" className="underline underline-offset-4">
-                    Sign Up
-                  </a>
                 </div>
               </form>
             </CardContent>

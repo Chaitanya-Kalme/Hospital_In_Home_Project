@@ -63,3 +63,25 @@ export async function GET(request: NextRequest){
         },{status:500})
     }
 }
+
+export async function PATCH(request: NextRequest){
+    const patients = await prisma.patient.findMany({
+        include:{
+            subscriptions:{
+                include:{
+                    doctor:true
+                }
+            }
+        },
+        omit:{
+            password:true
+        }
+    })
+
+    return NextResponse.json({
+        success: true,
+        message: "Patients fetches successfully",
+        patients: patients
+    })
+    
+}

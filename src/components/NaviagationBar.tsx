@@ -111,7 +111,16 @@ export default function NavigationBar() {
               </NavigationMenuList>
               )
           }
+          <NavigationMenuItem>
+            {
+              session?.user.role==="Admin" && (
+                <Link href="admin/doctorPendingRequests">Doctor Pending Request</Link>
+
+              )
+            }
+          </NavigationMenuItem>
         </NavigationMenuList>
+        
         <NavigationMenuList>
           <NavigationMenuItem >
             <DropdownMenu >
@@ -138,9 +147,9 @@ export default function NavigationBar() {
           <NavigationMenuItem >
             {session ? (
               <div className="space-x-2">
-                <Button onClick={() => getUserProfile()} className="rounded-full">
+                {session.user.role!=="Admin" && (<Button onClick={() => getUserProfile()} className="rounded-full">
                   Profile
-                </Button>
+                </Button>)}
                 <Button onClick={() => Logout()} className="rounded-md">Logout
                   <div>
                     <LogOut />
