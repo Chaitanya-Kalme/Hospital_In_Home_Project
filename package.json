@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "dev:socket":"node server.js",
+    "dev:socket": "tsx server.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@types/node": "^20",
+    "@types/node": "^20.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -60,6 +60,7 @@
     "postcss": "^8",
     "prisma": "^6.4.1",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }

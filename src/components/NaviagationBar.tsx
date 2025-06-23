@@ -72,7 +72,7 @@ export default function NavigationBar() {
         </NavigationMenuList>
       </NavigationMenu>
 
-      <NavigationMenu className="max-w-screen justify-end space-x-3">
+      <NavigationMenu className="max-w-screen justify-end space-x-3 whitespace-nowrap">
         <NavigationMenuList className="space-x-3">
           <NavigationMenuItem >
             <Link href="/">
@@ -106,6 +106,11 @@ export default function NavigationBar() {
                 <NavigationMenuItem  >
                   <Link href="/consultancy/patientList">
                     Patient List
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem  >
+                  <Link href="/doctor/appoinments">
+                    Appoinments
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>

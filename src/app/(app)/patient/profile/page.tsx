@@ -68,8 +68,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import socket from "@/helper/useSocket"
 
-interface Message{
+interface Message {
     id: string,
     userId: string,
     messageText: string,
@@ -229,94 +230,116 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
             const doctorName = row.getValue("userName") as string
             const doctorEmail = row.getValue("email") as string
             const doctor = row.getValue("View Profile") as User
-            const [messageText,setMessageText] = useState("")
-            const [messageArray,setMessageArray] = useState<Message[]>([])
-            const [messageDocument,setMessageDocument] = useState<File |null>(null)
+            const [messageText, setMessageText] = useState("")
+            const [messageArray, setMessageArray] = useState<Message[]>([])
+            const [messageDocument, setMessageDocument] = useState<File | null>(null)
             const patient = row.getValue("patient") as User
-            useEffect(() =>{
-                const messages:Message[] = row.getValue('Chat Section')
-                setMessageArray(messages)
-            },[messageArray])
-
-            setTimeout(async () => {
-                const messages:Message[] = row.getValue('Chat Section')
-                setMessageArray(messages)
-            }, 1000);
             const subscriptionId = row.getValue('subscriptionId') as string
-            
-            
-            const sendMessage = async () =>{
-                const session  =  await getSession()
+
+
+
+
+            const sendMessage = async () => {
+                const session = await getSession()
                 const userId = session?.user.id as string
                 const role = session?.user.role as string
 
                 const messageFormData = new FormData()
-                messageFormData.append('messageText',messageText)
-                messageFormData.append('userId',userId)
-                messageFormData.append('role',role)
-                messageFormData.append('messageDocument',messageDocument as File)
-                
-                await axios.post(`/api/message/createMessage/${subscriptionId}`,messageFormData)
-                .then((response) =>{
-                    toast.success("Message send sucessfully")
-                })
-                .catch((error) =>{
-                    console.log(error)
-                    toast.error(error.message)
-                })
-                setMessageText("")
+                const subscriptionId = row.getValue('subscriptionId') as string
+                messageFormData.append('messageText', messageText)
+                messageFormData.append('userId', userId)
+                messageFormData.append('role', role)
+                messageFormData.append('messageDocument', messageDocument as File)
+                messageFormData.append("subscriptionId",subscriptionId)
+
+                const messageData = Object.fromEntries(messageFormData.entries());
+
+                socket.emit("createMessage", messageData);
+
+                setMessageText("");
             }
 
+
+            useEffect(() => {
+                const handleConnect = async () => {
+                    const subscriptionId = row.getValue('subscriptionId') as string
+                    const data = { "subscriptionId": subscriptionId }
+                    socket.emit("fetchMessage", data, (response: any) => {
+                        setMessageArray(response.data.messages)
+                    })
+                }
+
+                const handleNewMessage = (newMessage: any) => {
+                    setMessageArray(prev => [...prev, newMessage]);
+                }
+
+                if (socket.connected) {
+                    handleConnect()
+                }
+                else {
+                    socket.on("connect", handleConnect)
+                }
+
+
+                socket.on("newMessage", handleNewMessage);
+
+                return () => {
+                    socket.off("connect", handleConnect);
+                    socket.off("newMessage", handleNewMessage);
+                };
+
+            }, [sendMessage])
+
             return (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline">Chat Section</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="min-h-svh overflow-scroll">
-                            <AlertDialogCancel className="w-fit ">Cancel</AlertDialogCancel>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle >
-                                    <p>Doctor Name: {doctorName}</p>
-                                    <p>Doctor Email: {doctorEmail}</p>
-                                </AlertDialogTitle>
-                                <AlertDialogDescription className="border-2 w-full overflow-y-auto">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline">Chat Section</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="min-h-svh overflow-scroll">
+                        <AlertDialogCancel className="w-fit ">Cancel</AlertDialogCancel>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle >
+                                <p>Doctor Name: {doctorName}</p>
+                                <p>Doctor Email: {doctorEmail}</p>
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="border-2 w-full overflow-y-auto">
                                 <ScrollArea id="scroll_area" className="rounded-md border h-72 md:h-80">
                                     {
-                                        messageArray?.length>0 &&  messageArray.map((message) =>(
+                                        messageArray?.length > 0 && messageArray.map((message) => (
                                             <div key={message.id} className={`w-full ${message.userId === doctor.id ? "text-right" : "text-right"}`}>
-                                            <div className={`bg-white border-2 ${message.userId === doctor.id ? "justify-items-start" : "justify-items-end"} text-black`}>
-                                                <div className="font-semibold">{message.userId === doctor.id ? doctorName : patient?.userName}</div>
-                                                <div>{message.messageText}</div>
-                                                {message.messageDocument && (
-                                                    <a href={message.messageDocument}>Open the file</a>
-                                                )}
-                                            </div>
+                                                <div className={`bg-white border-2 ${message.userId === doctor.id ? "justify-items-start" : "justify-items-end"} text-black`}>
+                                                    <div className="font-semibold">{message.userId === doctor.id ? doctorName : patient?.userName}</div>
+                                                    <div>{message.messageText}</div>
+                                                    {message.messageDocument && (
+                                                        <a href={message.messageDocument}>Open the file</a>
+                                                    )}
+                                                </div>
 
-                                        </div>
+                                            </div>
                                         ))
                                     }
-                                    </ScrollArea>
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            
-                            <AlertDialogFooter>
-                                <div className="grid w-full gap-2">
+                                </ScrollArea>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <AlertDialogFooter>
+                            <div className="grid w-full gap-2">
                                 <div className="flex">
-                                    <Paperclip/>
+                                    <Paperclip />
                                     <Input type="file" onChange={(e) => {
-                                        const files: FileList |null = e.target.files
-                                        if(files){
+                                        const files: FileList | null = e.target.files
+                                        if (files) {
                                             setMessageDocument(files[0])
                                         }
 
-                                    }}/>
+                                    }} />
                                 </div>
-                                    <Textarea value={messageText} placeholder="Type your message here." onChange={(e) => setMessageText(e.target.value)} />
-                                    <Button onClick={() => sendMessage()}>Send message</Button>
-                                </div>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                                <Textarea value={messageText} placeholder="Type your message here." onChange={(e) => setMessageText(e.target.value)} />
+                                <Button onClick={() => sendMessage()}>Send message</Button>
+                            </div>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
             )
 
@@ -506,7 +529,7 @@ function ProfilePage() {
                             <DropdownMenuContent align="end">
                                 {table
                                     .getAllColumns()
-                                    .filter((column) => column.getCanHide() && column.id !== "subscriptionId" && column.id!=="patient")
+                                    .filter((column) => column.getCanHide() && column.id !== "subscriptionId" && column.id !== "patient")
                                     .map((column) => {
                                         return (
                                             <DropdownMenuCheckboxItem

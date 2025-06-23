@@ -1,6 +1,9 @@
 'use client'
-import axios from "axios"
-import { ReactNode, useEffect, useState } from "react"
+import axios from 'axios'
+import { getSession, useSession } from 'next-auth/react'
+import React, { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { format } from "date-fns"
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -13,35 +16,6 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, CalendarIcon, ChevronDown, ClockIcon, MoreHorizontal, Paperclip, RotateCwSquare } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-import { toast } from "sonner"
-import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -53,15 +27,31 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar } from "@/components/ui/calendar"
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from '@/components/ui/button'
+import { ArrowUpDown, CalendarIcon, ChevronDown, Paperclip, TableOfContents } from 'lucide-react'
+import { Popover, PopoverContent } from '@/components/ui/popover'
+import { PopoverTrigger } from '@radix-ui/react-popover'
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
     Select,
     SelectContent,
@@ -71,11 +61,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { getSession } from "next-auth/react"
-import { UploadDoctorDocuments } from "@/helper/uploadOnCloudinary"
-import socket from "@/helper/useSocket"
+import { cn } from '@/lib/utils'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import socket from '@/helper/useSocket'
+import { useRouter } from 'next/navigation'
 
+enum AppointmentMode {
+    Offline,
+    Online
+}
 
 interface Message {
     id: string,
@@ -84,23 +85,37 @@ interface Message {
     messageDocument: string,
 }
 
-
-export type Patient = {
-    id: string,
-    userName: string,
-    avatar: string,
-    email: string,
-    mobileNo: string,
-}
-
 export type subscriptionRequests = {
     id: string,
     isApprovedByDoctor: boolean,
     detailsAboutProblem: string,
     createdAt: Date,
-    patient: Patient,
-    doctor: Patient
+    doctor: User,
+    patient: User
     messages: Message[]
+}
+
+interface User {
+    id: string
+    userName: string,
+    email: string,
+    avatar: string,
+    mobileNo: string,
+    createdAt: Date,
+    updatedAt: Date,
+    specialities: string,
+    isVerified: boolean,
+    subscriptions: subscriptionRequests[],
+    documentForVerification: String[]
+}
+
+
+type Appointment = {
+    id: string,
+    appointmentDateAndTime: Date,
+    mode: AppointmentMode,
+    meetingLink: string,
+    subscription: subscriptionRequests
 }
 
 
@@ -121,43 +136,9 @@ const createAppointment = async ({ subscriptionId, date, appointmentMode }: { su
 }
 
 
-
-
-export const columns: ColumnDef<subscriptionRequests>[] = [
+export const columns: ColumnDef<Appointment>[] = [
     {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={
-                    table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && "indeterminate")
-                }
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "isApprovedByDoctor",
-        header: "Approval Status",
-        cell: ({ row }) => {
-            const isApproved = row.getValue("isApprovedByDoctor");
-            return (
-                <div className="capitalize">{isApproved ? "Approved" : "Not Approved"}</div>
-            );
-        },
-    },
-    {
-        accessorFn: (row) => row.patient?.userName,
+        accessorFn: (row) => row?.subscription?.patient?.userName,
         accessorKey: "userName",
         header: ({ column }) => {
             return (
@@ -176,7 +157,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
         },
     },
     {
-        accessorFn: (row) => row.patient?.email,
+        accessorFn: (row) => row?.subscription?.patient?.email,
         accessorKey: "email",
         header: ({ column }) => {
             return (
@@ -195,6 +176,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
         },
     },
     {
+        accessorFn: (row) => row?.subscription?.detailsAboutProblem,
         accessorKey: "detailsAboutProblem",
         header: ({ column }) => {
             return (
@@ -207,15 +189,125 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
     },
     {
         accessorFn: (row) => row.id,
-        accessorKey: "subscriptionId",
+        accessorKey: "appointmentId",
         enableHiding: true,
-
     },
     {
-        accessorFn: (row) => row.doctor,
+        accessorFn: (row) => row.subscription.doctor,
         accessorKey: "doctor",
         enableHiding: true,
+    },
+    {
+        accessorFn: (row) => row.subscription.id,
+        accessorKey: "subscriptionId",
+        enableHiding: true,
+    },
+    {
+        accessorFn: (row) => row.mode,
+        accessorKey: "mode",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost">
+                    Mode
+                </Button>
+            )
+        },
+        cell: ({ row }) => {
+            const mode = row.getValue('mode') as string
+            return <div>{mode}</div>;
+        },
+    },
+    {
+        accessorFn: (row) => row.meetingLink,
+        accessorKey: "meetingLink",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost">
+                    Meeting Link
+                </Button>
+            )
+        },
+        cell: ({ row }) => {
+            const meetingLink = row.getValue('meetingLink') as string
+            if (meetingLink) {
+                return <a href={meetingLink} className='text-center w-full'>Link</a>;
+            }
+            else {
+                return <div>-</div>;
+            }
+        },
+    },
+    {
+        accessorFn: (row) => row.appointmentDateAndTime,
+        accessorKey: "dateAndTime",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost">
+                    Date And Time
+                </Button>
+            )
+        },
+        cell: ({ row }) => {
+            const stringDateAndTime = row.getValue('dateAndTime') as string
+            const dateAndTime = new Date(stringDateAndTime)
+            const localDateAndTime = dateAndTime.toLocaleString()
+            return <div>{localDateAndTime}</div>;
+        },
+    },
 
+    {
+        accessorFn: (row) => row?.subscription?.patient,
+        accessorKey: "View Profile",
+        header: ({ column }) => {
+            return <div></div>
+        },
+        cell: ({ row }) => {
+            const patient: User = row.getValue('View Profile')
+            return (
+                <div className="text-center w-full justify-center flex">
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button >View Profile</Button>
+                        </SheetTrigger>
+                        <SheetContent>
+                            <SheetHeader>
+                                <SheetTitle>View Profile</SheetTitle>
+                            </SheetHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="flex justify-center items-center gap-4">
+                                    <Avatar className="size-16">
+                                        <AvatarImage src={patient.avatar} />
+                                        <AvatarFallback>Avatar Image</AvatarFallback>
+                                    </Avatar>
+                                </div>
+                                <div className="flex justify-center items-center gap-4">
+                                    <div className="text-center">
+                                        Username: {patient.userName}
+                                    </div>
+                                </div>
+                                <div className="flex justify-center items-center gap-4">
+                                    <div className="text-center">
+                                        Email: {patient.email}
+                                    </div>
+                                </div>
+                                <div className="flex justify-center items-center gap-4">
+                                    <div className="text-center">
+                                        Mobile Number: {patient.mobileNo}
+                                    </div>
+                                </div>
+                            </div>
+                            <SheetFooter>
+                                <SheetClose asChild>
+                                    <Button >Remove Patient</Button>
+                                </SheetClose>
+                            </SheetFooter>
+                        </SheetContent>
+                    </Sheet>
+                </div>
+
+            )
+
+        }
     },
     {
         accessorKey: "Set Appointment",
@@ -390,62 +482,8 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
             )
         }
     },
-    {
-        accessorFn: (row) => row.patient,
-        accessorKey: "View Profile",
-        header: ({ column }) => {
-            return <div></div>
-        },
-        cell: ({ row }) => {
-            const patient: Patient = row.getValue('View Profile')
-            return (
-                <div className="text-center w-full justify-center flex">
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button >View Profile</Button>
-                        </SheetTrigger>
-                        <SheetContent>
-                            <SheetHeader>
-                                <SheetTitle>View Profile</SheetTitle>
-                            </SheetHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="flex justify-center items-center gap-4">
-                                    <Avatar className="size-16">
-                                        <AvatarImage src={patient.avatar} />
-                                        <AvatarFallback>Avatar Image</AvatarFallback>
-                                    </Avatar>
-                                </div>
-                                <div className="flex justify-center items-center gap-4">
-                                    <div className="text-center">
-                                        Username: {patient.userName}
-                                    </div>
-                                </div>
-                                <div className="flex justify-center items-center gap-4">
-                                    <div className="text-center">
-                                        Email: {patient.email}
-                                    </div>
-                                </div>
-                                <div className="flex justify-center items-center gap-4">
-                                    <div className="text-center">
-                                        Mobile Number: {patient.mobileNo}
-                                    </div>
-                                </div>
-                            </div>
-                            <SheetFooter>
-                                <SheetClose asChild>
-                                    <Button >Remove Patient</Button>
-                                </SheetClose>
-                            </SheetFooter>
-                        </SheetContent>
-                    </Sheet>
-                </div>
-
-            )
-
-        }
-    },
-    {
-        accessorFn: (row) => row.messages,
+   {
+        accessorFn: (row) => row.subscription.messages,
         accessorKey: "Chat Section",
         header: ({ column }) => {
             return <div></div>
@@ -453,11 +491,11 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
         cell: ({ row }) => {
             const patientName = row.getValue("userName") as string
             const patientEmail = row.getValue("email") as string
-            const patient = row.getValue("View Profile") as Patient
+            const patient = row.getValue("View Profile") as User
             const [messageText, setMessageText] = useState("")
             const [messageArray, setMessageArray] = useState<Message[]>([])
             const [messageDocument,setMessageDocument] = useState<File |null>(null) 
-            const doctor = row.getValue("doctor") as Patient
+            const [doctor,setDoctor]= useState<User>()
 
             const scroll_area: HTMLElement |null = document.getElementById("scroll_area")
             if(scroll_area){
@@ -491,6 +529,7 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
                     const data = { "subscriptionId": subscriptionId }
                     socket.emit("fetchMessage", data, (response: any) => {
                         setMessageArray(response.data.messages)
+                        setDoctor(response.data.doctor)
                     })
                 }
 
@@ -569,41 +608,65 @@ export const columns: ColumnDef<subscriptionRequests>[] = [
 
         }
     },
+    {
+        accessorKey: "deleteAppoinment",
+        header: ({ column }) => {
+            return <div></div>
+        },
+        cell: ({ row }) => {
+            const appoinmentId = row.getValue('appointmentId') as string
+            const deleteAppoinment = async () => {
+                const appoinmentDeleteResponse = await axios.delete(`/api/subscription/deleteAppoinment/${appoinmentId}`).then((response) => {
+                    toast.success(response.data.message)
+                    location.reload()
+                })
+                    .catch((error) => {
+                        toast.error(error.message)
+                    })
+
+            }
+
+            return <Button onClick={() => deleteAppoinment()}>Delete Appoinment</Button>;
+        },
+    },
 
 ]
 
-export default function PatientRequestPending() {
 
-    const [patientList, setPatientList] = useState<subscriptionRequests[]>([])
-    const [isLoading, setIsLoading] = useState(false)
+
+function AppoinmentPage() {
+    const { data: session, status } = useSession()
+    const user = session?.user as User
+    const [appoinmentList, setAppoinmentList] = useState<Appointment[]>([])
 
     useEffect(() => {
-        const getPendingRequest = async () => {
-            setIsLoading(true)
-            await axios.get('/api/subscription/getPendingRequest?isApprovedByDoctor=true')
+        if (status !== "authenticated") return;
+        const doctorId = user?.id
+        const fetchAppoinments = async () => {
+            await axios.get(`/api/subscription/getDoctorsAppointments/${doctorId}`)
                 .then((response) => {
-                    setPatientList(response.data.subscriptionsNotApprovedByDoctor)
+                    setAppoinmentList(response.data.appointments)
                 })
                 .catch((error) => {
                     console.log(error)
+                    toast.error(error.message)
                 })
-
         }
-        getPendingRequest()
-        setIsLoading(false)
-    }, [])
+        fetchAppoinments()
+    }, [status, user])
 
 
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
         subscriptionId: false,
-        doctor: false
+        doctor: false,
+        appointmentId: false
     })
     const [rowSelection, setRowSelection] = useState({})
 
-    const table = useReactTable({
-        data: patientList,
+    const appoinmentTable = useReactTable({
+        data: appoinmentList,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -621,22 +684,20 @@ export default function PatientRequestPending() {
         }
     })
 
-    if (isLoading) {
+    if (!user) {
         return (
-            <div>Loading...</div>
+            <div className='font-bold text-2xl text-center'>Loading...</div>
         )
     }
-
-
 
     return (
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
                     placeholder="Filter emails..."
-                    value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
+                    value={(appoinmentTable.getColumn("email")?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
-                        table.getColumn("email")?.setFilterValue(event.target.value)
+                        appoinmentTable.getColumn("email")?.setFilterValue(event.target.value)
                     }
                     className="max-w-sm"
                 />
@@ -647,9 +708,9 @@ export default function PatientRequestPending() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {table
+                        {appoinmentTable
                             .getAllColumns()
-                            .filter((column) => column.getCanHide() && column.id !== "subscriptionId" && column.id !== "doctor")
+                            .filter((column) => column.getCanHide() && column.id !== "subscriptionId" && column.id !== "doctor" && column.id !== "appoinmentId")
                             .map((column) => {
                                 return (
                                     <DropdownMenuCheckboxItem
@@ -672,7 +733,7 @@ export default function PatientRequestPending() {
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
+                        {appoinmentTable.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
                                     <TableHead key={header.id}>
@@ -689,8 +750,8 @@ export default function PatientRequestPending() {
                     </TableHeader>
 
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
+                        {appoinmentTable.getRowModel().rows?.length ? (
+                            appoinmentTable.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
@@ -713,23 +774,23 @@ export default function PatientRequestPending() {
             {/* Pagination */}
             <div className="flex items-center justify-end space-x-2 py-4">
                 <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
+                    {appoinmentTable.getFilteredSelectedRowModel().rows.length} of{" "}
+                    {appoinmentTable.getFilteredRowModel().rows.length} row(s) selected.
                 </div>
                 <div className="space-x-2">
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => appoinmentTable.previousPage()}
+                        disabled={!appoinmentTable.getCanPreviousPage()}
                     >
                         Previous
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
+                        onClick={() => appoinmentTable.nextPage()}
+                        disabled={!appoinmentTable.getCanNextPage()}
                     >
                         Next
                     </Button>
@@ -739,3 +800,5 @@ export default function PatientRequestPending() {
         </div>
     )
 }
+
+export default AppoinmentPage
